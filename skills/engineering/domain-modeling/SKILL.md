@@ -1,6 +1,7 @@
 ---
 name: domain-modeling
 description: Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or editing a GLOSSARY.md, or recording or editing an ADR.
+allowed-tools: Bash(python3 "${CLAUDE_SKILL_DIR}/scripts/glossary.py" *)
 ---
 
 # Domain Modeling
@@ -72,3 +73,15 @@ Only offer to create an ADR when all three are true:
 3. **The result of a real trade-off**: there were genuine alternatives and you picked one for specific reasons
 
 If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
+
+## The glossary page
+
+`scripts/glossary.py` serves the root `GLOSSARY.md` as a local page where the user edits, comments on and approves terms. Approvals and comments live in `.glossary.json` beside it. The page reads only the root `GLOSSARY.md`, not the per-context ones a `GLOSSARY-MAP.md` points to.
+
+Open comments the user left on the page, one JSON line each:
+
+!`python3 "${CLAUDE_SKILL_DIR}/scripts/glossary.py" comments --root "${CLAUDE_PROJECT_DIR}"`
+
+- **Open.** When the user asks to see or review the glossary, run `python3 "${CLAUDE_SKILL_DIR}/scripts/glossary.py" open --no-open --root <repo>` and give the user the address it prints. If binding a local port fails, run it outside the sandbox.
+- **Reply.** Treat each open comment as the user's correction of that term: change the term, or answer without changing it. Then post the answer, which resolves the comment: `python3 "${CLAUDE_SKILL_DIR}/scripts/glossary.py" reply <id> "<what changed, or the answer>" --root <repo>`.
+- **Never approve a term yourself**, and leave `.glossary.json` to the page: an approval is the user's sign-off on the exact wording. A term you add or change shows as To review until they approve it.
