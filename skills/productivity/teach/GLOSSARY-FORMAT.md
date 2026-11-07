@@ -12,11 +12,11 @@
 ## Terms
 
 **Hypertrophy**:
+_Aliases_: Muscle hypertrophy
 Muscle growth driven by mechanical tension and metabolic stress over repeated training sessions.
 _Avoid_: Bulking, getting big
 
 **Progressive overload**:
-_Aliases_: Overload
 Systematically increasing the demand on a muscle over time, via load, volume, or intensity.
 _Avoid_: Pushing harder, levelling up
 
@@ -28,7 +28,8 @@ _Avoid_: Effort score, intensity rating
 ## Rules
 
 - **Add a term only when the user understands it.** The glossary is a record of compressed knowledge, not a dictionary the user reads to learn. If the user has just been introduced to a concept, wait until they can use it correctly before promoting it here.
-- **Be opinionated.** When several words exist for the same concept, pick the best one and list the rest under `_Avoid_`. This is how language compresses. Names the workspace uses freely for the same term (short forms, other spellings) go under `_Aliases_`, right after the `**Term**:` line; an alias is the term under another name, not a word to avoid, and a name belongs to one term only.
+- **Be opinionated.** When several words exist for the same concept, pick the best one and list the rest as aliases to avoid. This is how language compresses.
+- **Aliases are accepted names, not avoided ones.** The words to avoid go under `_Avoid_`. Names the workspace uses freely for the same term (short forms, other spellings) go under `_Aliases_`, right after the `**Term**:` line; an alias is the term under another name, not a word to avoid, and a name belongs to one term only.
 - **Keep definitions tight.** One or two sentences. Define what the term IS, not what it does or how to do it.
 - **Use the glossary's own terms inside definitions.** Once a term is in the glossary, prefer it everywhere, including inside other definitions. This is what makes complex terms easier to grasp later.
 - **Group under subheadings** when natural clusters emerge (e.g. `## Anatomy`, `## Programming`). A flat list is fine when terms cohere.
