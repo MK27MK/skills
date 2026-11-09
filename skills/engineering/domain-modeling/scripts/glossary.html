@@ -148,6 +148,12 @@ form.edit .error:empty { display: none; }
 .thread textarea { flex: 1; min-width: 0; min-height: 34px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); resize: vertical; font-size: 14px; }
 .toggle-resolved { all: unset; cursor: pointer; font-size: 12.5px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
 
+dialog.ask { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); padding: 16px 18px;
+  max-width: min(420px, calc(100% - 32px)); }
+dialog.ask::backdrop { background: rgba(0, 0, 0, .35); }
+dialog.ask p { margin: 0 0 14px; overflow-wrap: anywhere; }
+dialog.ask .buttons { display: flex; justify-content: flex-end; gap: 6px; }
+
 .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 14px;
   border-radius: 8px; font-size: 13.5px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: calc(100% - 32px); }
 .toast.on { opacity: 1; }
@@ -362,6 +368,19 @@ function toast(msg) {
   const t = $("#toast"); t.textContent = msg; t.classList.add("on");
   clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove("on"), 2200);
 }
+/* A confirmation inside the page: some embedded browsers answer window.confirm() with false without showing it. */
+function ask(message, ok) {
+  return new Promise(resolve => {
+    const d = document.createElement("dialog");
+    d.className = "ask";
+    d.innerHTML = `<form method="dialog"><p>${esc(message)}</p><div class="buttons">
+      <button class="btn" value="no">Cancel</button><button class="btn primary" value="yes">${esc(ok)}</button></div></form>`;
+    d.addEventListener("close", () => { resolve(d.returnValue === "yes"); d.remove(); });
+    document.body.appendChild(d);
+    d.showModal();
+    $("button[value=yes]", d).focus();
+  });
+}
 function notice(msg) { $("#notice").textContent = msg || ""; }
 
 async function load() {
@@ -496,6 +515,7 @@ function termCard(t, many) {
       ${many && t.section ? `<span class="section-tag">${esc(t.section)}</span>` : ""}
       <div class="actions">
         ${ibtn("edit", "Edit", 'data-act="edit"', "", "E")}
+        ${ibtn("trash", "Delete the term from GLOSSARY.md", 'data-act="delete"')}
         <button class="ibtn" type="button" data-act="thread" aria-label="${comments}" data-tip="${comments}"
           aria-expanded="${openThreads.has(t.name) || open > 0}">${icon("comment")}${t.comments.length
             ? `<span class="badge${open ? "" : " quiet"}">${open || t.comments.length}</span>` : ""}</button>
@@ -524,6 +544,7 @@ function termCard(t, many) {
     const b = e.target.closest("button[data-act]"); if (!b) return;
     if (b.dataset.act === "approve") approve(t, toReview(t));
     if (b.dataset.act === "edit") edit();
+    if (b.dataset.act === "delete") remove(t, t.hash);
     if (b.dataset.act === "thread") {
       if (openThreads.has(t.name) && !open) openThreads.delete(t.name); else openThreads.add(t.name);
       render();
@@ -566,11 +587,7 @@ function editForm(t) {
   f.addEventListener("click", async e => {
     const b = e.target.closest("button[data-act]"); if (!b) return;
     if (b.dataset.act === "cancel") cancel();
-    if (b.dataset.act === "delete") {
-      if (!confirm(`Delete “${t.name}” from GLOSSARY.md?`)) return;
-      try { const snap = await api("/api/delete", { name: t.name, base: state.base }); editing.delete(key); accept(snap); toast("Deleted " + t.name); }
-      catch (err) { conflictOrError(key, err); }
-    }
+    if (b.dataset.act === "delete") remove(t, state.base, key);
   });
   f.addEventListener("submit", async e => {
     e.preventDefault();
@@ -587,6 +604,21 @@ function editForm(t) {
     } catch (err) { conflictOrError(key, err); }
   });
   return f;
+}
+/* Delete a term, from its card or from its edit form (key is the form's, when there is one). */
+async function remove(t, base, key) {
+  if (!await ask(`Delete “${t.name}” from GLOSSARY.md? Its approval and comments go with it.`, "Delete")) return;
+  try {
+    const snap = await api("/api/delete", { name: t.name, base });
+    if (key !== undefined) editing.delete(key);
+    openThreads.delete(t.name);
+    accept(snap);
+    toast("Deleted " + t.name);
+  } catch (err) {
+    if (key !== undefined) return conflictOrError(key, err);
+    if (err.status === 409) { await load(); toast(t.name + " changed in GLOSSARY.md; read it again before deleting"); }
+    else toast(err.message);
+  }
 }
 async function conflictOrError(key, err) {
   const state = editing.get(key);
@@ -629,7 +661,7 @@ async function approve(t, yes) {
 }
 
 async function approveMany(list) {
-  if (!confirm(`Approve ${list.length} term${list.length > 1 ? "s" : ""} as they read now?`)) return;
+  if (!await ask(`Approve ${list.length} term${list.length > 1 ? "s" : ""} as they read now?`, "Approve")) return;
   let snap = null, failed = 0;
   for (const t of list) {
     try { snap = await api("/api/approve", { name: t.name, base: t.hash, approved: true }); } catch { failed++; }
